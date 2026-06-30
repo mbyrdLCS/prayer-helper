@@ -59,6 +59,10 @@ export default async function KidProfile({
   const parent = kid.claimedBy ? await getParent(kid.claimedBy) : null;
   const showParent = parent && !parent.hidden && (parent.openToPrayer || me?.isAdmin || isClaimer);
 
+  // Does the viewer have their own parent profile set up (required to claim)?
+  const myParent = me ? await getParent(me.id) : null;
+  const hasParentProfile = !!myParent?.displayName?.trim();
+
   return (
     <div className="flex flex-col gap-6 max-w-2xl mx-auto">
       <Link href="/kids" className="text-sm text-muted hover:text-primary">
@@ -149,21 +153,37 @@ export default async function KidProfile({
               Your previous claim was not approved. Contact an admin if this is your child.
             </p>
           ) : !kid.claimedBy ? (
-            <form action={requestClaim.bind(null, kid.id)} className="flex flex-col gap-3">
-              <h2 className="font-semibold">Is this your child?</h2>
-              <p className="text-sm text-muted">
-                Request to claim {kid.firstName}. An admin will approve it, then you
-                can add a photo, prayer requests, and a little about them.
-              </p>
-              <input
-                name="message"
-                placeholder="Optional note to the admins (e.g. your name)"
-                className="rounded-lg border border-border bg-surface px-3 py-2 text-sm"
-              />
-              <button className="self-start px-5 py-2 rounded-lg bg-primary text-white text-sm font-semibold">
-                Request to claim
-              </button>
-            </form>
+            hasParentProfile ? (
+              <form action={requestClaim.bind(null, kid.id)} className="flex flex-col gap-3">
+                <h2 className="font-semibold">Is this your child?</h2>
+                <p className="text-sm text-muted">
+                  Request to claim {kid.firstName}. An admin will approve it, then you
+                  can add a photo, prayer requests, and a little about them.
+                </p>
+                <input
+                  name="message"
+                  placeholder="Optional note to the admins"
+                  className="rounded-lg border border-border bg-surface px-3 py-2 text-sm"
+                />
+                <button className="self-start px-5 py-2 rounded-lg bg-primary text-white text-sm font-semibold">
+                  Request to claim
+                </button>
+              </form>
+            ) : (
+              <div className="flex flex-col gap-3">
+                <h2 className="font-semibold">Is this your child?</h2>
+                <p className="text-sm text-muted">
+                  First, set up <strong>your own parent profile</strong> so we know who
+                  you are. Then you can request to claim {kid.firstName}.
+                </p>
+                <Link
+                  href={`/parents/${me.id}`}
+                  className="self-start px-5 py-2 rounded-lg bg-primary text-white text-sm font-semibold"
+                >
+                  Create my parent profile
+                </Link>
+              </div>
+            )
           ) : null}
         </section>
       )}

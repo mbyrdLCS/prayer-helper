@@ -2,9 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, asc, count, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { comments, kids, parents, prayers } from "@/db/schema";
+import { appUsers, comments, kids, parents, prayers } from "@/db/schema";
 import { requireAccess } from "@/lib/auth";
 import { getParent, parentDisplayName } from "@/lib/parents";
+import { facebookSearchUrl } from "@/lib/config";
 import { today } from "@/lib/dates";
 import ParentAvatar from "@/components/ParentAvatar";
 import CommentForm from "@/components/CommentForm";
@@ -70,6 +71,12 @@ export default async function ParentProfile({
     .orderBy(desc(comments.createdAt))
     .limit(100);
 
+  // For admins: the parent's real account name/email, to verify on Facebook.
+  const account = me?.isAdmin
+    ? await db.query.appUsers.findFirst({ where: eq(appUsers.id, id) })
+    : null;
+  const lookupName = account?.name || parent.displayName || "";
+
   return (
     <div className="flex flex-col gap-6 max-w-2xl mx-auto">
       <Link href="/parents" className="text-sm text-muted hover:text-primary">
@@ -96,6 +103,27 @@ export default async function ParentProfile({
           {!parent.openToPrayer && isSelf && (
             <p className="text-xs text-muted mt-1">
               Your profile is private (not shown in the parents list).
+            </p>
+          )}
+          {me?.isAdmin && !isSelf && (
+            <p className="text-xs text-muted mt-2 border-t border-border pt-2">
+              <span className="font-semibold text-foreground">Admin:</span>{" "}
+              {account?.name || "—"}
+              {account?.email ? ` · ${account.email}` : ""}
+              {lookupName && (
+                <>
+                  {" · "}
+                  <a
+                    href={facebookSearchUrl(lookupName)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#1877F2] font-semibold hover:underline"
+                    title="Search Facebook to confirm they're in the group"
+                  >
+                    🔍 Look up on Facebook
+                  </a>
+                </>
+              )}
             </p>
           )}
         </div>

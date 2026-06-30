@@ -1,11 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { put } from "@vercel/blob";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { claims, comments, kids, prayers } from "@/db/schema";
 import { getDbUser } from "@/lib/auth";
+import { getParent } from "@/lib/parents";
 import { today } from "@/lib/dates";
 import { PREVIEW_MODE } from "@/lib/preview";
 
@@ -20,6 +22,13 @@ async function canManageKid(kidId: number) {
 export async function requestClaim(kidId: number, formData: FormData) {
   const me = await getDbUser();
   if (!me) throw new Error("Not signed in");
+
+  // Must have a parent profile (with a name) before claiming a child.
+  const myParent = await getParent(me.id);
+  if (!myParent?.displayName?.trim()) {
+    redirect(`/parents/${me.id}`);
+  }
+
   const message = String(formData.get("message") || "").trim().slice(0, 1000);
 
   const existing = await db.query.claims.findFirst({

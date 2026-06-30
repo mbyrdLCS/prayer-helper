@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { appUsers, claims, comments, kids, questionOptions, questions } from "@/db/schema";
 import { getDbUser } from "@/lib/auth";
 import { getDailyCount, getAccessCode, MIN_DAILY, MAX_DAILY } from "@/lib/settings";
+import { facebookSearchUrl } from "@/lib/config";
 import DailyCountSettings from "@/components/DailyCountSettings";
 import {
   addAdminByEmail,
@@ -133,6 +134,17 @@ export default async function AdminPage({
                   <span className="text-muted text-sm">
                     {" "}— {c.userName || "Member"} ({c.userEmail || "no email"})
                   </span>
+                  {c.userName && (
+                    <a
+                      href={facebookSearchUrl(c.userName)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-2 text-xs text-[#1877F2] font-semibold hover:underline"
+                      title="Search Facebook for this name to confirm they're in the group"
+                    >
+                      🔍 Look up on Facebook
+                    </a>
+                  )}
                   {c.claim.message && <p className="text-sm text-foreground/80">“{c.claim.message}”</p>}
                 </div>
                 <div className="flex gap-2">

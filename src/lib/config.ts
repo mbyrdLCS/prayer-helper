@@ -13,3 +13,8 @@ export const APP_TAGLINE =
 
 /** Contact email shown on the privacy/terms pages. */
 export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || "";
+
+/** Facebook people-search link by name — to help admins confirm group membership. */
+export function facebookSearchUrl(name: string): string {
+  return `https://www.facebook.com/search/people/?q=${encodeURIComponent((name || "").trim())}`;
+}
