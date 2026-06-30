@@ -1,0 +1,1 @@
+ALTER TABLE "app_users" ADD COLUMN "email_daily_card" boolean DEFAULT false NOT NULL;

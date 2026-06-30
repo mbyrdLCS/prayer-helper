@@ -1,26 +1,63 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #faf6f1; /* warm cream */
+  --surface: #ffffff;
+  --foreground: #3a2e2a; /* warm dark brown */
+  --muted: #8a7a72;
+  --primary: #b23a48; /* deep rose */
+  --primary-soft: #c97c84;
+  --accent: #7c8c6f; /* sage green (matches the card greenery) */
+  --border: #ece2d8;
+  --ring: #d8a7ac;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-muted: var(--muted);
+  --color-primary: var(--primary);
+  --color-primary-soft: var(--primary-soft);
+  --color-accent: var(--accent);
+  --color-border: var(--border);
+  --font-sans: var(--font-sans-app);
+  --font-script: var(--font-script);
+  --font-display: var(--font-display);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans-app), ui-sans-serif, system-ui, sans-serif;
+}
+
+.script {
+  font-family: var(--font-script), cursive;
+}
+
+/* Display font for names (kids & parents) — Poppins */
+.display {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.01em;
+}
+
+/* Soft warm page wash */
+body {
+  background-image: radial-gradient(
+      1200px 500px at 50% -10%,
+      rgba(178, 58, 72, 0.05),
+      transparent
+    ),
+    radial-gradient(900px 500px at 100% 0%, rgba(124, 140, 111, 0.06), transparent);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* Subtle card shadow used throughout */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px rgba(58, 46, 42, 0.04), 0 8px 24px rgba(58, 46, 42, 0.05);
 }

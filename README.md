@@ -1,36 +1,91 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Hopeful 🙏
 
-## Getting Started
+A private, login-gated prayer web app for a support group of parents. Every day the
+app features a rotating handful of kids **by first name**, lets members tap **"I
+Prayed"** and leave encouragement, auto-generates a downloadable **"Hopeful" card**
+(day / week / month) to share, and keeps a directory of kids that parents can
+**claim** (with admin approval) to add a photo, prayer requests, and — when prayers
+are answered — a place on the **Redeemed** wall.
 
-First, run the development server:
+Built to be **self-hostable**: anyone can clone this and spin up their own private
+prayer space. **No real names or secrets are in this repo** — you add your own at
+runtime through the admin dashboard.
+
+## Stack
+
+- **Next.js (App Router)** — UI, server actions, image generation, cron
+- **Neon** — free serverless Postgres
+- **Drizzle ORM** — schema + migrations
+- **Clerk** — auth (email + Facebook login), sessions, roles
+- **Vercel Blob** — profile photo storage
+- **Vercel** — hosting + cron
+
+All four services have free tiers that comfortably cover a group of a few hundred.
+
+## Quick start (local)
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <your-fork-url> hopeful && cd hopeful
+npm install
+cp .env.example .env.local   # then fill in the values (see below)
+npm run db:push              # create the tables in your Neon database
+npm run dev                  # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Environment variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+See `.env.example`. You need:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Variable | Where to get it |
+| --- | --- |
+| `DATABASE_URL` | [neon.tech](https://neon.tech) → create project → pooled connection string |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` | [clerk.com](https://clerk.com) → create app → API keys |
+| `BLOB_READ_WRITE_TOKEN` | Vercel → Storage → Blob (auto-added when you connect the integration) |
+| `ADMIN_EMAILS` | Comma-separated emails that become admins on first login (set this to **your** email) |
+| `APP_TIMEZONE` | e.g. `America/New_York` — decides when "today" rolls over |
+| `DAILY_COUNT` | how many kids featured per day (default 7) |
+| `CRON_SECRET` | long random string; protects the daily generation endpoint |
 
-## Learn More
+### Enable Facebook login (optional)
 
-To learn more about Next.js, take a look at the following resources:
+In the Clerk dashboard → **User & Authentication → Social Connections → Facebook**,
+add your Facebook app's ID/secret. Email/password works out of the box without this.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deploy (Vercel)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Push your fork to GitHub.
+2. Import it at [vercel.com/new](https://vercel.com/new).
+3. Add the **Neon**, **Clerk**, and **Blob** integrations (they inject most env vars),
+   then add `ADMIN_EMAILS`, `APP_TIMEZONE`, `DAILY_COUNT`, and `CRON_SECRET`.
+4. Deploy. Run the migration once with `npm run db:push` (locally, against the prod
+   `DATABASE_URL`) or via Neon's SQL editor using `drizzle/0000_*.sql`.
+5. The daily card generator runs automatically (`vercel.json` cron, 10:00 UTC).
 
-## Deploy on Vercel
+## First-run setup
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Sign in with the email you put in `ADMIN_EMAILS` → you're an admin.
+2. Go to **Admin → Add kids** and paste your list of first names (one per line).
+3. Add other admins by email (they must sign in once first).
+4. Share the site with your group. Members sign in, pray, and can request to claim
+   their own child.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## How the rotation works
+
+Kids are ordered (`sortOrder`). Each day the app takes the next `DAILY_COUNT` kids,
+wrapping around so **everyone gets prayed for**, then repeats. Selections are stored
+per day so cards are stable and reproducible. New kids join the end of the cycle.
+
+## Privacy & safety
+
+This app handles sensitive data (kids' names in a private group). It's designed so:
+
+- Everything is **behind login**; first-name-only by default.
+- **No real names live in the code** — admins enter them at runtime.
+- All data access is **server-side**; every mutating action re-checks role/ownership.
+- Admins can **edit or remove** any profile, photo, or comment.
+
+See `SECURITY.md` for the full checklist.
+
+## License
+
+MIT — see `LICENSE`.
