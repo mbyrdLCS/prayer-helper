@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { kids } from "@/db/schema";
 import KidAvatar from "@/components/KidAvatar";
 import { requireAccess } from "@/lib/auth";
+import { kidName } from "@/lib/kids";
 import { APP_NAME } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
@@ -44,7 +45,7 @@ export default async function RedeemedPage() {
                   className="card p-5 flex flex-col items-center gap-3 text-center hover:-translate-y-0.5 transition h-full"
                 >
                   <KidAvatar kid={kid} size="lg" />
-                  <span className="display font-semibold text-xl">{kid.firstName}</span>
+                  <span className="display font-semibold text-xl">{kidName(kid)}</span>
                   {kid.redeemedNote && (
                     <span className="text-xs text-muted line-clamp-4">
                       {kid.redeemedNote}

@@ -6,6 +6,7 @@ import { getDayPrayer } from "@/lib/rotation";
 import { today, prettyDate } from "@/lib/dates";
 import { requireAccess } from "@/lib/auth";
 import { APP_NAME } from "@/lib/config";
+import { kidName } from "@/lib/kids";
 import KidAvatar from "@/components/KidAvatar";
 import PrayButton from "@/components/PrayButton";
 import CommentForm from "@/components/CommentForm";
@@ -69,7 +70,7 @@ export default async function TodayPage() {
                 className="card p-4 flex flex-col items-center gap-2 text-center hover:-translate-y-0.5 transition h-full"
               >
                 <KidAvatar kid={kid} size="lg" />
-                <span className="display font-semibold text-xl">{kid.firstName}</span>
+                <span className="display font-semibold text-xl">{kidName(kid)}</span>
                 {kid.prayerRequest && (
                   <span className="text-xs text-muted line-clamp-3">
                     {kid.prayerRequest}

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, eq, gt, ne, sql } from "drizzle-orm";
+import { and, asc, eq, gt, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   appUsers,
@@ -112,12 +112,47 @@ export async function seedFromImage() {
 export async function editKid(kidId: number, formData: FormData) {
   await requireAdmin();
   const firstName = String(formData.get("firstName") || "").trim().slice(0, 80);
+  const lastInitial = String(formData.get("lastInitial") || "").trim().slice(0, 12) || null;
   const sortOrder = parseInt(String(formData.get("sortOrder") || "0"), 10) || 0;
   if (!firstName) return;
   await db
     .update(kids)
-    .set({ firstName, sortOrder, needsReview: false })
+    .set({ firstName, lastInitial, sortOrder, needsReview: false })
     .where(eq(kids.id, kidId));
+  revalidateAll();
+}
+
+/**
+ * Add "1, 2, 3" tags to any first name that appears more than once, so
+ * duplicates (e.g. 8 Jonathans) can be told apart. Non-destructive: only fills
+ * blank tags and never touches names that appear once. Safe to run repeatedly.
+ */
+export async function autoNumberDuplicates() {
+  await requireAdmin();
+  const all = await db
+    .select({ id: kids.id, firstName: kids.firstName, lastInitial: kids.lastInitial })
+    .from(kids)
+    .where(eq(kids.hidden, false))
+    .orderBy(asc(kids.sortOrder), asc(kids.id));
+
+  const groups = new Map<string, typeof all>();
+  for (const k of all) {
+    const key = k.firstName.trim().toLowerCase();
+    const arr = groups.get(key) ?? [];
+    arr.push(k);
+    groups.set(key, arr);
+  }
+
+  for (const group of groups.values()) {
+    if (group.length < 2) continue;
+    let n = 1;
+    for (const k of group) {
+      if (!k.lastInitial || !k.lastInitial.trim()) {
+        await db.update(kids).set({ lastInitial: String(n) }).where(eq(kids.id, k.id));
+      }
+      n++;
+    }
+  }
   revalidateAll();
 }
 

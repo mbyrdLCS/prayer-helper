@@ -3,6 +3,7 @@ import { and, asc, eq, ilike } from "drizzle-orm";
 import { db } from "@/db";
 import { kids } from "@/db/schema";
 import { requireAccess } from "@/lib/auth";
+import { kidName } from "@/lib/kids";
 import KidAvatar from "@/components/KidAvatar";
 
 export const dynamic = "force-dynamic";
@@ -58,7 +59,7 @@ export default async function KidsPage({
                 className="card p-4 flex flex-col items-center gap-2 text-center hover:-translate-y-0.5 transition h-full"
               >
                 <KidAvatar kid={kid} size="lg" />
-                <span className="display font-semibold text-xl">{kid.firstName}</span>
+                <span className="display font-semibold text-xl">{kidName(kid)}</span>
                 <div className="flex flex-wrap gap-1 justify-center">
                   {kid.claimedBy && (
                     <span className="text-[10px] font-semibold text-accent bg-accent/10 px-2 py-0.5 rounded-full">

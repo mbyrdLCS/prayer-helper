@@ -11,6 +11,7 @@ import {
   addKid,
   addKidsBulk,
   addQuestion,
+  autoNumberDuplicates,
   approveClaim,
   approveRedeemed,
   clearNeedsReview,
@@ -211,11 +212,18 @@ export default async function AdminPage({
         title="Manage kids"
         hint={q ? `Search results for “${q}”.` : "Showing kids that still need review. Search to find anyone."}
       >
-        <form className="flex gap-2">
-          <input name="q" defaultValue={q} placeholder="Search a name…" className="rounded-lg border border-border bg-surface px-3 py-2 text-sm" />
-          <button className="px-4 py-2 rounded-lg border border-border text-sm font-semibold">Search</button>
-          {q && <Link href="/admin" className="px-4 py-2 rounded-lg text-sm text-muted self-center">Clear</Link>}
-        </form>
+        <div className="flex flex-wrap gap-2 items-center justify-between">
+          <form className="flex gap-2">
+            <input name="q" defaultValue={q} placeholder="Search a name…" className="rounded-lg border border-border bg-surface px-3 py-2 text-sm" />
+            <button className="px-4 py-2 rounded-lg border border-border text-sm font-semibold">Search</button>
+            {q && <Link href="/admin" className="px-4 py-2 rounded-lg text-sm text-muted self-center">Clear</Link>}
+          </form>
+          <form action={autoNumberDuplicates}>
+            <button className="px-4 py-2 rounded-lg border border-primary text-primary text-sm font-semibold" title="Add 1, 2, 3… to any repeated first name. Safe to run anytime.">
+              🔢 Auto-number duplicates
+            </button>
+          </form>
+        </div>
         {kidList.length === 0 ? (
           <p className="text-muted text-sm">{q ? "No matches." : "Nothing needs review. 🎉"}</p>
         ) : (
@@ -223,7 +231,8 @@ export default async function AdminPage({
             {kidList.map((k) => (
               <li key={k.id} className="flex flex-wrap items-center gap-2 border border-border rounded-lg p-2">
                 <form action={editKid.bind(null, k.id)} className="flex items-center gap-2 flex-1 min-w-[240px]">
-                  <input name="firstName" defaultValue={k.firstName} className="rounded border border-border bg-surface px-2 py-1 text-sm w-40" />
+                  <input name="firstName" defaultValue={k.firstName} className="rounded border border-border bg-surface px-2 py-1 text-sm w-36" />
+                  <input name="lastInitial" defaultValue={k.lastInitial ?? ""} placeholder="#" title="Tag to tell duplicates apart (e.g. 1)" className="rounded border border-border bg-surface px-2 py-1 text-sm w-14" />
                   <input name="sortOrder" type="number" defaultValue={k.sortOrder} title="Order in rotation" className="rounded border border-border bg-surface px-2 py-1 text-sm w-20" />
                   <button className="px-3 py-1 rounded bg-primary text-white text-xs font-semibold">Save</button>
                 </form>

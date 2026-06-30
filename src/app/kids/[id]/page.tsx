@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { claims, comments, kids, prayers } from "@/db/schema";
 import { requireAccess } from "@/lib/auth";
 import { getParent, parentDisplayName } from "@/lib/parents";
+import { kidName } from "@/lib/kids";
 import { today } from "@/lib/dates";
 import KidAvatar from "@/components/KidAvatar";
 import ParentAvatar from "@/components/ParentAvatar";
@@ -68,7 +69,7 @@ export default async function KidProfile({
         <KidAvatar kid={kid} size="lg" />
         <div className="flex-1">
           <h1 className="display text-4xl font-bold flex items-center gap-2">
-            {kid.firstName}
+            {kidName(kid)}
             {kid.redeemed === "approved" && (
               <span className="text-sm font-semibold text-accent bg-accent/10 px-2 py-1 rounded-full">
                 ✦ Redeemed

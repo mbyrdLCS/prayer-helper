@@ -32,6 +32,7 @@ export const kids = pgTable(
   {
     id: serial("id").primaryKey(),
     firstName: text("first_name").notNull(),
+    lastInitial: text("last_initial"), // optional, to tell same-named kids apart
     blurb: text("blurb"),
     prayerRequest: text("prayer_request"),
     photoUrl: text("photo_url"),

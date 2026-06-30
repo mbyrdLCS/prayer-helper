@@ -5,6 +5,7 @@ import { loadGoogleFont } from "@/lib/card-font";
 import { APP_NAME, GROUP_NAME } from "@/lib/config";
 import { resolveTheme } from "@/lib/card-themes";
 import { monthImageDataUri } from "@/lib/card-bg";
+import { kidName } from "@/lib/kids";
 
 export const CARD_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -33,7 +34,7 @@ export async function renderCardImage(
   style: CardStyle = "classic"
 ): Promise<ImageResponse> {
   const { kids } = await getDayPrayer(date);
-  const names = kids.map((k) => k.firstName.toUpperCase());
+  const names = kids.map((k) => kidName(k).toUpperCase());
   const theme = resolveTheme(date, themeOverride);
 
   // Resolve background image for image styles (fall back to gradient if missing).
