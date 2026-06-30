@@ -41,10 +41,15 @@ export default function RootLayout({
         <main className="flex-1 w-full max-w-5xl mx-auto px-4 py-6 sm:py-10">
           {children}
         </main>
-        <footer className="border-t border-border py-6 text-center text-sm text-muted">
+        <footer className="border-t border-border py-6 text-center text-sm text-muted flex flex-col gap-1">
           <p>
             <span className="script text-lg text-primary">{APP_NAME}</span> · a
             private prayer space · made with love
+          </p>
+          <p className="text-xs">
+            <a href="/privacy" className="hover:text-primary">Privacy</a>
+            {" · "}
+            <a href="/terms" className="hover:text-primary">Terms</a>
           </p>
         </footer>
       </body>

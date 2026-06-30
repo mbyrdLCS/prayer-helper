@@ -6,6 +6,8 @@ import { PREVIEW_MODE } from "@/lib/preview";
 const isPublic = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
+  "/privacy",
+  "/terms",
   "/api/cron(.*)",
 ]);
 

@@ -10,3 +10,6 @@ export const GROUP_NAME = process.env.NEXT_PUBLIC_GROUP_NAME || "";
 export const APP_TAGLINE =
   process.env.NEXT_PUBLIC_APP_TAGLINE ||
   "A private space to pray for our kids — by name, every day.";
+
+/** Contact email shown on the privacy/terms pages. */
+export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || "";
