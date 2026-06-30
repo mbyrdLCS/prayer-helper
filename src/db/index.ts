@@ -121,9 +121,14 @@ if (PREVIEW_MODE) {
     ]);
   }
 } else {
-  const sqlClient = neon(
-    process.env.DATABASE_URL ?? "postgresql://invalid:invalid@invalid/invalid"
-  );
+  // Accept any of the common var names (manual, or Vercel's Neon integration
+  // with/without a "DATABASE" prefix).
+  const conn =
+    process.env.DATABASE_URL ||
+    process.env.DATABASE_POSTGRES_URL ||
+    process.env.POSTGRES_URL ||
+    "postgresql://invalid:invalid@invalid/invalid";
+  const sqlClient = neon(conn);
   db = drizzleNeon(sqlClient, { schema });
 }
 
