@@ -32,12 +32,15 @@ export async function requestClaim(kidId: number, formData: FormData) {
 
   const message = String(formData.get("message") || "").trim().slice(0, 1000);
 
-  const existing = await db.query.claims.findFirst({
-    where: and(eq(claims.kidId, kidId), eq(claims.userId, me.id)),
-  });
-  if (existing && existing.status !== "denied") {
-    return; // already pending/approved
-  }
+  const mine = await db
+    .select()
+    .from(claims)
+    .where(and(eq(claims.kidId, kidId), eq(claims.userId, me.id)));
+  // Already pending or approved → nothing to do.
+  if (mine.some((c) => c.status === "pending" || c.status === "approved")) return;
+  // Locked after 3 denials.
+  if (mine.filter((c) => c.status === "denied").length >= 3) return;
+
   await db.insert(claims).values({ kidId, userId: me.id, message, status: "pending" });
   revalidatePath(`/kids/${kidId}`);
 }

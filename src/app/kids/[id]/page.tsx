@@ -35,13 +35,15 @@ export default async function KidProfile({
   const kid = await db.query.kids.findFirst({ where: eq(kids.id, kidId) });
   if (!kid || (kid.hidden && !me?.isAdmin)) notFound();
 
-  const myClaim = me
-    ? await db.query.claims.findFirst({
-        where: and(eq(claims.kidId, kidId), eq(claims.userId, me.id)),
-      })
-    : null;
-
-  const isClaimer = myClaim?.status === "approved";
+  const myClaims = me
+    ? await db
+        .select()
+        .from(claims)
+        .where(and(eq(claims.kidId, kidId), eq(claims.userId, me.id)))
+    : [];
+  const hasPendingClaim = myClaims.some((c) => c.status === "pending");
+  const isClaimer = myClaims.some((c) => c.status === "approved");
+  const deniedCount = myClaims.filter((c) => c.status === "denied").length;
   const canManage = !!me && (me.isAdmin || isClaimer);
 
   const [{ value: prayedToday }] = await db
@@ -156,47 +158,53 @@ export default async function KidProfile({
       {/* Claim area */}
       {!canManage && me && (
         <section className="card p-6">
-          {myClaim && myClaim.status === "pending" ? (
+          {hasPendingClaim ? (
             <p className="text-muted">
               ⏳ Your request to claim {kid.firstName} is pending admin approval.
             </p>
-          ) : myClaim && myClaim.status === "denied" ? (
+          ) : deniedCount >= 3 ? (
             <p className="text-muted">
-              Your previous claim was not approved. Contact an admin if this is your child.
+              Your requests to claim {kid.firstName} weren&apos;t approved. Please
+              contact an admin if this is your child.
             </p>
-          ) : !kid.claimedBy ? (
-            hasParentProfile ? (
-              <form action={requestClaim.bind(null, kid.id)} className="flex flex-col gap-3">
-                <h2 className="font-semibold">Is this your child?</h2>
+          ) : !hasParentProfile ? (
+            <div className="flex flex-col gap-3">
+              <h2 className="font-semibold">Is this your child?</h2>
+              <p className="text-sm text-muted">
+                First, set up <strong>your own parent profile</strong> so we know who
+                you are. Then you can request to claim {kid.firstName}.
+              </p>
+              <Link
+                href={`/parents/${me.id}`}
+                className="self-start px-5 py-2 rounded-lg bg-primary text-white text-sm font-semibold"
+              >
+                Create my parent profile
+              </Link>
+            </div>
+          ) : (
+            <form action={requestClaim.bind(null, kid.id)} className="flex flex-col gap-3">
+              <h2 className="font-semibold">Is this your child?</h2>
+              {deniedCount > 0 ? (
                 <p className="text-sm text-muted">
-                  Request to claim {kid.firstName}. An admin will approve it, then you
-                  can add a photo, prayer requests, and a little about them.
+                  Your last request wasn&apos;t approved, but you can try again. An admin
+                  will review it.
                 </p>
-                <input
-                  name="message"
-                  placeholder="Optional note to the admins"
-                  className="rounded-lg border border-border bg-surface px-3 py-2 text-sm"
-                />
-                <button className="self-start px-5 py-2 rounded-lg bg-primary text-white text-sm font-semibold">
-                  Request to claim
-                </button>
-              </form>
-            ) : (
-              <div className="flex flex-col gap-3">
-                <h2 className="font-semibold">Is this your child?</h2>
+              ) : (
                 <p className="text-sm text-muted">
-                  First, set up <strong>your own parent profile</strong> so we know who
-                  you are. Then you can request to claim {kid.firstName}.
+                  Request to claim {kid.firstName} (more than one family member can).
+                  An admin will approve it, then you can add a photo and prayer requests.
                 </p>
-                <Link
-                  href={`/parents/${me.id}`}
-                  className="self-start px-5 py-2 rounded-lg bg-primary text-white text-sm font-semibold"
-                >
-                  Create my parent profile
-                </Link>
-              </div>
-            )
-          ) : null}
+              )}
+              <input
+                name="message"
+                placeholder="Optional note to the admins"
+                className="rounded-lg border border-border bg-surface px-3 py-2 text-sm"
+              />
+              <button className="self-start px-5 py-2 rounded-lg bg-primary text-white text-sm font-semibold">
+                Request to claim
+              </button>
+            </form>
+          )}
         </section>
       )}
 
