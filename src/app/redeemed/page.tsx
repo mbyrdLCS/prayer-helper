@@ -3,11 +3,13 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { kids } from "@/db/schema";
 import KidAvatar from "@/components/KidAvatar";
+import { requireAccess } from "@/lib/auth";
 import { APP_NAME } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
 export default async function RedeemedPage() {
+  await requireAccess();
   const list = await db
     .select()
     .from(kids)

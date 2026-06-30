@@ -2,6 +2,7 @@ import Link from "next/link";
 import { and, asc, eq, ilike } from "drizzle-orm";
 import { db } from "@/db";
 import { kids } from "@/db/schema";
+import { requireAccess } from "@/lib/auth";
 import KidAvatar from "@/components/KidAvatar";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +12,7 @@ export default async function KidsPage({
 }: {
   searchParams: Promise<{ q?: string }>;
 }) {
+  await requireAccess();
   const { q } = await searchParams;
   const where = q
     ? and(eq(kids.hidden, false), ilike(kids.firstName, `%${q}%`))

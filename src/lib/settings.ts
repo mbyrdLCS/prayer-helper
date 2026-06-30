@@ -22,6 +22,12 @@ export async function setSetting(key: string, value: string): Promise<void> {
     .onConflictDoUpdate({ target: settings.key, set: { value, updatedAt: new Date() } });
 }
 
+/** The join code members enter to get access (admin-editable, falls back to env). */
+export async function getAccessCode(): Promise<string> {
+  const v = await getSetting("access_code");
+  return (v ?? process.env.ACCESS_CODE ?? "").trim();
+}
+
 /** How many kids to feature each day (admin-editable, falls back to env/9). */
 export async function getDailyCount(): Promise<number> {
   const v = await getSetting("daily_count");

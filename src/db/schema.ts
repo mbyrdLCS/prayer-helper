@@ -21,6 +21,7 @@ export const appUsers = pgTable("app_users", {
   name: text("name"),
   imageUrl: text("image_url"),
   isAdmin: boolean("is_admin").notNull().default(false),
+  approved: boolean("approved").notNull().default(false),
   emailDailyCard: boolean("email_daily_card").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

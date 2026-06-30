@@ -2,13 +2,13 @@ import Link from "next/link";
 import { asc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { questionOptions, questionResponses, questions } from "@/db/schema";
-import { getDbUser } from "@/lib/auth";
+import { requireAccess } from "@/lib/auth";
 import { answerQuestion } from "./actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function InsightsPage() {
-  const me = await getDbUser();
+  const me = await requireAccess();
   const qs = await db
     .select()
     .from(questions)

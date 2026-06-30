@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { and, asc, count, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { comments, kids, parents, prayers } from "@/db/schema";
-import { getDbUser } from "@/lib/auth";
+import { requireAccess } from "@/lib/auth";
 import { getParent, parentDisplayName } from "@/lib/parents";
 import { today } from "@/lib/dates";
 import ParentAvatar from "@/components/ParentAvatar";
@@ -24,7 +24,7 @@ export default async function ParentProfile({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const me = await getDbUser();
+  const me = await requireAccess();
   const parent = await getParent(id);
   const isSelf = !!me && me.id === id;
   const canManage = !!me && (isSelf || me.isAdmin);

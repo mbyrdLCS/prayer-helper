@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { comments, prayers } from "@/db/schema";
 import { getDayPrayer } from "@/lib/rotation";
 import { today, prettyDate } from "@/lib/dates";
-import { syncCurrentUser } from "@/lib/auth";
+import { requireAccess } from "@/lib/auth";
 import { APP_NAME } from "@/lib/config";
 import KidAvatar from "@/components/KidAvatar";
 import PrayButton from "@/components/PrayButton";
@@ -15,8 +15,8 @@ import { addDayComment } from "./actions";
 export const dynamic = "force-dynamic";
 
 export default async function TodayPage() {
-  // First authenticated touch-point — make sure the user exists in our DB.
-  const me = await syncCurrentUser();
+  // Gate: signed in + has access (admin or approved via join code).
+  const me = await requireAccess();
   const day = today();
   const { kids } = await getDayPrayer(day);
 

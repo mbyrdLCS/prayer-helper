@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { UserButton } from "@clerk/nextjs";
-import { getDbUser } from "@/lib/auth";
+import { getDbUser, hasAccess } from "@/lib/auth";
 import { APP_NAME } from "@/lib/config";
 import { PREVIEW_MODE } from "@/lib/preview";
 
@@ -10,6 +10,7 @@ export default async function SiteNav() {
   const signedIn = !!userId;
   const me = signedIn ? await getDbUser() : null;
   const isAdmin = !!me?.isAdmin;
+  const access = hasAccess(me);
 
   const links: { href: string; label: string }[] = [
     { href: "/today", label: "Today" },
@@ -28,6 +29,7 @@ export default async function SiteNav() {
 
         {signedIn ? (
           <>
+            {access && (
             <div className="hidden sm:flex items-center gap-1 text-sm">
               {links.map((l) => (
                 <Link
@@ -47,6 +49,7 @@ export default async function SiteNav() {
                 </Link>
               )}
             </div>
+            )}
             {PREVIEW_MODE ? (
               <span className="text-xs rounded-full bg-amber-100 text-amber-700 px-3 py-1 font-semibold">
                 Preview
@@ -66,7 +69,7 @@ export default async function SiteNav() {
       </nav>
 
       {/* Mobile nav */}
-      {signedIn && (
+      {signedIn && access && (
         <div className="sm:hidden border-t border-border overflow-x-auto">
           <div className="flex items-center gap-1 px-2 py-1 text-sm whitespace-nowrap">
             {links.map((l) => (

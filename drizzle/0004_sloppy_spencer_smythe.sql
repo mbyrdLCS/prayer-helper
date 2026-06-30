@@ -1,0 +1,1 @@
+ALTER TABLE "app_users" ADD COLUMN "approved" boolean DEFAULT false NOT NULL;

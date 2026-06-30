@@ -1,4 +1,5 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { appUsers, type AppUser } from "@/db/schema";
@@ -38,24 +39,32 @@ export async function syncCurrentUser(): Promise<AppUser | null> {
       name,
       imageUrl: u.imageUrl,
       isAdmin: isSeedAdmin,
+      approved: isSeedAdmin, // admins are auto-approved
     };
     await db.insert(appUsers).values(row).onConflictDoNothing();
     return { ...row, createdAt: new Date() } as AppUser;
   }
 
   const isAdmin = existing.isAdmin || isSeedAdmin;
+  const approved = existing.approved || isSeedAdmin;
   if (
     existing.name !== name ||
     existing.imageUrl !== u.imageUrl ||
     existing.isAdmin !== isAdmin ||
+    existing.approved !== approved ||
     existing.email !== email
   ) {
     await db
       .update(appUsers)
-      .set({ name, imageUrl: u.imageUrl, isAdmin, email })
+      .set({ name, imageUrl: u.imageUrl, isAdmin, approved, email })
       .where(eq(appUsers.id, u.id));
   }
-  return { ...existing, name, imageUrl: u.imageUrl, isAdmin, email };
+  return { ...existing, name, imageUrl: u.imageUrl, isAdmin, approved, email };
+}
+
+/** Does this user have access to the app (admin or approved via join code)? */
+export function hasAccess(u: { isAdmin: boolean; approved: boolean } | null): boolean {
+  return !!u && (u.isAdmin || u.approved);
 }
 
 /** Lightweight lookup of the current app user (no Clerk profile fetch). */
@@ -79,6 +88,19 @@ export async function requireAdmin(): Promise<AppUser> {
   if (PREVIEW_MODE) return PREVIEW_USER as AppUser;
   const me = await getDbUser();
   if (!me?.isAdmin) throw new Error("Not authorized");
+  return me;
+}
+
+/**
+ * Gate for protected pages: ensures the user is signed in AND has access
+ * (admin or approved via the join code). Redirects to /sign-in or /join.
+ * Returns the current app user. Syncs the Clerk profile on the way.
+ */
+export async function requireAccess(): Promise<AppUser> {
+  if (PREVIEW_MODE) return PREVIEW_USER as AppUser;
+  const me = await syncCurrentUser();
+  if (!me) redirect("/sign-in");
+  if (!hasAccess(me)) redirect("/join");
   return me;
 }
 

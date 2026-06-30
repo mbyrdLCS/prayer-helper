@@ -4,7 +4,7 @@ import { and, asc, desc, eq, ilike, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { appUsers, claims, comments, kids, questionOptions, questions } from "@/db/schema";
 import { getDbUser } from "@/lib/auth";
-import { getDailyCount, MIN_DAILY, MAX_DAILY } from "@/lib/settings";
+import { getDailyCount, getAccessCode, MIN_DAILY, MAX_DAILY } from "@/lib/settings";
 import DailyCountSettings from "@/components/DailyCountSettings";
 import {
   addAdminByEmail,
@@ -22,10 +22,12 @@ import {
   rejectRedeemed,
   removeKidPhoto,
   seedFromImage,
+  setAccessCode,
   setCommentHidden,
   setKidHidden,
   setQuestionActive,
   setUserAdmin,
+  setUserApproved,
 } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -61,6 +63,7 @@ export default async function AdminPage({
     .from(kids)
     .where(eq(kids.hidden, false));
   const dailyCount = await getDailyCount();
+  const accessCode = await getAccessCode();
 
   const pendingClaims = await db
     .select({ claim: claims, kidName: kids.firstName, userName: appUsers.name, userEmail: appUsers.email })
@@ -99,7 +102,6 @@ export default async function AdminPage({
     .orderBy(asc(questions.sortOrder), asc(questions.id));
   const allOptions = await db.select().from(questionOptions);
 
-  const admins = await db.select().from(appUsers).where(eq(appUsers.isAdmin, true));
   const members = await db
     .select()
     .from(appUsers)
@@ -319,24 +321,50 @@ export default async function AdminPage({
         )}
       </Section>
 
-      {/* Admins */}
-      <Section title={`Admins (${admins.length})`} hint="Admins can approve claims, confirm redeemed, add/edit/delete kids, and moderate. Add by email (the person must have signed in once).">
+      {/* Access code */}
+      <Section title="Access code" hint="New members enter this code to get in. Share it inside your private Facebook group. Change it anytime to rotate access.">
+        <form action={setAccessCode} className="flex gap-2 items-center flex-wrap">
+          <input name="code" defaultValue={accessCode} placeholder="e.g. hopeful2026" className="rounded-lg border border-border bg-surface px-3 py-2 text-sm w-56" />
+          <button className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold">Save code</button>
+          {!accessCode && (
+            <span className="text-xs text-primary">⚠ No code set yet — set one so members can join.</span>
+          )}
+        </form>
+      </Section>
+
+      {/* Members */}
+      <Section title={`Members (${members.length})`} hint="Everyone who has signed in. Approve or remove access, and manage admins. Add an admin by email (they must have signed in once).">
         <form action={addAdminByEmail} className="flex gap-2">
           <input name="email" type="email" placeholder="member@email.com" className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm" />
           <button className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold">Make admin</button>
         </form>
         <ul className="flex flex-col gap-1">
           {members.map((u) => (
-            <li key={u.id} className="flex items-center justify-between gap-2 text-sm border-b border-border py-1.5">
+            <li key={u.id} className="flex items-center justify-between gap-2 text-sm border-b border-border py-1.5 flex-wrap">
               <span>
                 {u.name || "Member"} <span className="text-muted text-xs">{u.email}</span>
-                {u.isAdmin && <span className="ml-2 text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">admin</span>}
+                {u.isAdmin ? (
+                  <span className="ml-2 text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">admin</span>
+                ) : u.approved ? (
+                  <span className="ml-2 text-[10px] bg-accent/15 text-accent px-2 py-0.5 rounded-full">approved</span>
+                ) : (
+                  <span className="ml-2 text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">pending</span>
+                )}
               </span>
-              <form action={setUserAdmin.bind(null, u.id, !u.isAdmin)}>
-                <button className="text-xs px-2 py-1 rounded border border-border">
-                  {u.isAdmin ? "remove admin" : "make admin"}
-                </button>
-              </form>
+              <div className="flex gap-1">
+                {!u.isAdmin && (
+                  <form action={setUserApproved.bind(null, u.id, !u.approved)}>
+                    <button className="text-xs px-2 py-1 rounded border border-border">
+                      {u.approved ? "remove access" : "approve"}
+                    </button>
+                  </form>
+                )}
+                <form action={setUserAdmin.bind(null, u.id, !u.isAdmin)}>
+                  <button className="text-xs px-2 py-1 rounded border border-border">
+                    {u.isAdmin ? "remove admin" : "make admin"}
+                  </button>
+                </form>
+              </div>
             </li>
           ))}
         </ul>

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { and, count, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { claims, comments, kids, prayers } from "@/db/schema";
-import { getDbUser } from "@/lib/auth";
+import { requireAccess } from "@/lib/auth";
 import { getParent, parentDisplayName } from "@/lib/parents";
 import { today } from "@/lib/dates";
 import KidAvatar from "@/components/KidAvatar";
@@ -29,7 +29,7 @@ export default async function KidProfile({
   const kidId = Number(id);
   if (!Number.isFinite(kidId)) notFound();
 
-  const me = await getDbUser();
+  const me = await requireAccess();
   const kid = await db.query.kids.findFirst({ where: eq(kids.id, kidId) });
   if (!kid || (kid.hidden && !me?.isAdmin)) notFound();
 

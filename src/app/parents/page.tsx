@@ -2,14 +2,14 @@ import Link from "next/link";
 import { and, desc, eq, isNotNull } from "drizzle-orm";
 import { db } from "@/db";
 import { parents } from "@/db/schema";
-import { getDbUser } from "@/lib/auth";
+import { requireAccess } from "@/lib/auth";
 import { parentDisplayName } from "@/lib/parents";
 import ParentAvatar from "@/components/ParentAvatar";
 
 export const dynamic = "force-dynamic";
 
 export default async function ParentsPage() {
-  const me = await getDbUser();
+  const me = await requireAccess();
   const list = await db
     .select()
     .from(parents)

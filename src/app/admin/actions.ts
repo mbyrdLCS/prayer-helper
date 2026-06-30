@@ -218,6 +218,24 @@ export async function setDailyCount(formData: FormData) {
   revalidatePath("/cards");
 }
 
+/* ---------- Access / membership ---------- */
+
+export async function setAccessCode(formData: FormData) {
+  await requireAdmin();
+  const code = String(formData.get("code") || "").trim().slice(0, 100);
+  await setSetting("access_code", code);
+  revalidateAll();
+}
+
+export async function setUserApproved(userId: string, approved: boolean) {
+  const me = await requireAdmin();
+  if (me.id === userId && !approved) {
+    throw new Error("You can't remove your own access.");
+  }
+  await db.update(appUsers).set({ approved }).where(eq(appUsers.id, userId));
+  revalidateAll();
+}
+
 /* ---------- Parent moderation ---------- */
 
 export async function setParentHidden(userId: string, hidden: boolean) {
