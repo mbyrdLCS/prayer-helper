@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { today } from "@/lib/dates";
 import { APP_NAME } from "@/lib/config";
 import { requireAccess } from "@/lib/auth";
@@ -6,7 +7,8 @@ import CardDownloader from "@/components/CardDownloader";
 export const dynamic = "force-dynamic";
 
 export default async function CardsPage() {
-  await requireAccess();
+  const me = await requireAccess();
+  if (!me.isAdmin) redirect("/today");
   return (
     <div className="flex flex-col gap-6">
       <header>

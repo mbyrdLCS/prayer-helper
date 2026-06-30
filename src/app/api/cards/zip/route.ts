@@ -2,13 +2,13 @@ import JSZip from "jszip";
 import { renderCardImage, CARD_DATE_RE, CARD_STYLES, type CardStyle } from "@/lib/render-card";
 import { ensureSelectionsForRange } from "@/lib/rotation";
 import { addDays } from "@/lib/dates";
-import { getDbUser, hasAccess } from "@/lib/auth";
+import { getDbUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 export async function GET(req: Request) {
-  if (!hasAccess(await getDbUser())) {
+  if (!(await getDbUser())?.isAdmin) {
     return new Response("Forbidden", { status: 403 });
   }
   const url = new URL(req.url);

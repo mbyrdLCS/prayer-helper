@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { UserButton } from "@clerk/nextjs";
-import { getDbUser, hasAccess } from "@/lib/auth";
+import { syncCurrentUser, hasAccess } from "@/lib/auth";
 import { APP_NAME } from "@/lib/config";
 import { PREVIEW_MODE } from "@/lib/preview";
 
 export default async function SiteNav() {
   const userId = PREVIEW_MODE ? "preview-admin" : (await auth()).userId;
   const signedIn = !!userId;
-  const me = signedIn ? await getDbUser() : null;
+  // Sync here so the row (and admin/approved flags) exist on first paint.
+  const me = signedIn ? await syncCurrentUser() : null;
   const isAdmin = !!me?.isAdmin;
   const access = hasAccess(me);
 
@@ -17,7 +18,10 @@ export default async function SiteNav() {
     { href: "/kids", label: "Our Kids" },
     { href: "/parents", label: "Parents" },
     { href: "/redeemed", label: "Redeemed" },
+  ];
+  const adminLinks: { href: string; label: string }[] = [
     { href: "/cards", label: "Daily Cards" },
+    { href: "/admin", label: "Admin" },
   ];
 
   return (
@@ -40,14 +44,16 @@ export default async function SiteNav() {
                   {l.label}
                 </Link>
               ))}
-              {isAdmin && (
-                <Link
-                  href="/admin"
-                  className="px-3 py-2 rounded-lg text-primary font-semibold hover:bg-background transition"
-                >
-                  Admin
-                </Link>
-              )}
+              {isAdmin &&
+                adminLinks.map((l) => (
+                  <Link
+                    key={l.href}
+                    href={l.href}
+                    className="px-3 py-2 rounded-lg text-primary font-semibold hover:bg-background transition"
+                  >
+                    {l.label}
+                  </Link>
+                ))}
             </div>
             )}
             {PREVIEW_MODE ? (
@@ -81,11 +87,12 @@ export default async function SiteNav() {
                 {l.label}
               </Link>
             ))}
-            {isAdmin && (
-              <Link href="/admin" className="px-3 py-2 rounded-lg text-primary font-semibold">
-                Admin
-              </Link>
-            )}
+            {isAdmin &&
+              adminLinks.map((l) => (
+                <Link key={l.href} href={l.href} className="px-3 py-2 rounded-lg text-primary font-semibold">
+                  {l.label}
+                </Link>
+              ))}
           </div>
         </div>
       )}
