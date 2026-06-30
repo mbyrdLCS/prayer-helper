@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { claims, comments, kids, prayers } from "@/db/schema";
 import { getDbUser } from "@/lib/auth";
 import { getParent } from "@/lib/parents";
+import { userHasApprovedClaim } from "@/lib/claims";
 import { today } from "@/lib/dates";
 import { PREVIEW_MODE } from "@/lib/preview";
 
@@ -15,8 +16,8 @@ async function canManageKid(kidId: number) {
   const me = await getDbUser();
   if (!me) return { me: null, allowed: false as const };
   if (me.isAdmin) return { me, allowed: true as const };
-  const kid = await db.query.kids.findFirst({ where: eq(kids.id, kidId) });
-  return { me, allowed: kid?.claimedBy === me.id };
+  // Any approved family member can manage the child's profile.
+  return { me, allowed: await userHasApprovedClaim(kidId, me.id) };
 }
 
 export async function requestClaim(kidId: number, formData: FormData) {
@@ -57,6 +58,9 @@ export async function updateKidProfile(kidId: number, formData: FormData) {
 export async function uploadKidPhoto(kidId: number, formData: FormData) {
   const { allowed } = await canManageKid(kidId);
   if (!allowed) throw new Error("Not authorized");
+  if (formData.get("consent") !== "yes") {
+    throw new Error("Please confirm you have permission to share this photo.");
+  }
   const file = formData.get("photo") as File | null;
   if (!file || file.size === 0) return;
   if (file.size > 8 * 1024 * 1024) throw new Error("Image too large (max 8MB)");
@@ -67,6 +71,9 @@ export async function uploadKidPhoto(kidId: number, formData: FormData) {
     await db.update(kids).set({ photoUrl: dataUrl }).where(eq(kids.id, kidId));
     revalidatePath(`/kids/${kidId}`);
     return;
+  }
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    throw new Error("Photo storage isn't set up yet. (Admin: add Vercel Blob to enable photos.)");
   }
   const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
   const blob = await put(`kids/${kidId}-${Date.now()}.${ext}`, file, {

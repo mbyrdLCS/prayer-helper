@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { claims, comments, kids, prayers } from "@/db/schema";
 import { requireAccess } from "@/lib/auth";
 import { getParent, parentDisplayName } from "@/lib/parents";
+import { approvedClaimantIds } from "@/lib/claims";
 import { kidName } from "@/lib/kids";
 import { today } from "@/lib/dates";
 import KidAvatar from "@/components/KidAvatar";
@@ -34,14 +35,14 @@ export default async function KidProfile({
   const kid = await db.query.kids.findFirst({ where: eq(kids.id, kidId) });
   if (!kid || (kid.hidden && !me?.isAdmin)) notFound();
 
-  const isClaimer = !!me && kid.claimedBy === me.id;
-  const canManage = !!me && (me.isAdmin || isClaimer);
-
   const myClaim = me
     ? await db.query.claims.findFirst({
         where: and(eq(claims.kidId, kidId), eq(claims.userId, me.id)),
       })
     : null;
+
+  const isClaimer = myClaim?.status === "approved";
+  const canManage = !!me && (me.isAdmin || isClaimer);
 
   const [{ value: prayedToday }] = await db
     .select({ value: count() })
@@ -55,9 +56,14 @@ export default async function KidProfile({
     .orderBy(desc(comments.createdAt))
     .limit(100);
 
-  // The claiming parent (so visitors can pray for them too).
-  const parent = kid.claimedBy ? await getParent(kid.claimedBy) : null;
-  const showParent = parent && !parent.hidden && (parent.openToPrayer || me?.isAdmin || isClaimer);
+  // All connected family members (Mom, Dad, Grandma…), so visitors can pray for them too.
+  const approvedIds = await approvedClaimantIds(kidId);
+  const familyParents = (await Promise.all(approvedIds.map((uid) => getParent(uid)))).filter(
+    (p): p is NonNullable<typeof p> => !!p && !p.hidden
+  );
+  const visibleFamily = familyParents.filter(
+    (p) => p.openToPrayer || me?.isAdmin || isClaimer
+  );
 
   // Does the viewer have their own parent profile set up (required to claim)?
   const myParent = me ? await getParent(me.id) : null;
@@ -125,20 +131,26 @@ export default async function KidProfile({
         <p className="text-muted text-sm">{prayedToday} prayed for {kid.firstName} today</p>
       </form>
 
-      {showParent && parent && (
-        <Link
-          href={`/parents/${parent.userId}`}
-          className="card p-5 flex items-center gap-3 hover:-translate-y-0.5 transition"
-        >
-          <ParentAvatar name={parentDisplayName(parent)} photoUrl={parent.photoUrl} size="md" />
-          <div className="flex-1">
-            <p className="font-semibold">{parentDisplayName(parent)}</p>
-            <p className="text-sm text-muted">
-              {kid.firstName}&apos;s parent — they need strength too. Tap to pray for them. 💗
-            </p>
-          </div>
-          <span className="text-primary text-sm font-semibold">Pray →</span>
-        </Link>
+      {visibleFamily.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted text-center">
+            {kid.firstName}&apos;s family — they need strength too 💗
+          </h2>
+          {visibleFamily.map((p) => (
+            <Link
+              key={p.userId}
+              href={`/parents/${p.userId}`}
+              className="card p-4 flex items-center gap-3 hover:-translate-y-0.5 transition"
+            >
+              <ParentAvatar name={parentDisplayName(p)} photoUrl={p.photoUrl} size="md" />
+              <div className="flex-1">
+                <p className="font-semibold">{parentDisplayName(p)}</p>
+                <p className="text-sm text-muted">Tap to pray for them.</p>
+              </div>
+              <span className="text-primary text-sm font-semibold">Pray →</span>
+            </Link>
+          ))}
+        </section>
       )}
 
       {/* Claim area */}
@@ -220,6 +232,15 @@ export default async function KidProfile({
           <form action={uploadKidPhoto.bind(null, kid.id)} className="flex flex-col gap-2">
             <label className="text-sm font-semibold">Photo</label>
             <input type="file" name="photo" accept="image/*" className="text-sm" />
+            <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
+              <strong>Please read:</strong> {kid.firstName} is a minor. Only upload a
+              photo if you are their parent/guardian and you have permission to share it
+              in this private group. It will be visible to logged-in members only.
+              <label className="flex items-start gap-2 mt-2">
+                <input type="checkbox" name="consent" value="yes" required className="mt-0.5" />
+                <span>I have permission to share this photo.</span>
+              </label>
+            </div>
             <button className="self-start px-5 py-2 rounded-lg border border-border text-sm font-semibold hover:bg-background">
               Upload photo
             </button>

@@ -47,6 +47,9 @@ export async function uploadParentPhoto(parentUserId: string, formData: FormData
     const buf = Buffer.from(await file.arrayBuffer());
     url = `data:${file.type || "image/jpeg"};base64,${buf.toString("base64")}`;
   } else {
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      throw new Error("Photo storage isn't set up yet. (Admin: add Vercel Blob to enable photos.)");
+    }
     const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
     const blob = await put(`parents/${parentUserId}-${Date.now()}.${ext}`, file, {
       access: "public",

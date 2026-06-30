@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, asc, eq, gt, ne, sql } from "drizzle-orm";
+import { asc, eq, gt, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   appUsers,
@@ -43,13 +43,13 @@ export async function approveClaim(claimId: number) {
     .update(claims)
     .set({ status: "approved", decidedBy: me.id, decidedAt: new Date() })
     .where(eq(claims.id, claimId));
-  await db.update(kids).set({ claimedBy: claim.userId }).where(eq(kids.id, claim.kidId));
+  // Multiple family members can be connected to one child. Keep claimedBy as the
+  // first/primary (for the "claimed" badge) but DON'T deny other claims.
+  const kid = await db.query.kids.findFirst({ where: eq(kids.id, claim.kidId) });
+  if (kid && !kid.claimedBy) {
+    await db.update(kids).set({ claimedBy: claim.userId }).where(eq(kids.id, claim.kidId));
+  }
   await ensureParentProfile(claim.userId); // give the parent a profile to share requests
-  // Deny any other pending claims for the same child.
-  await db
-    .update(claims)
-    .set({ status: "denied", decidedBy: me.id, decidedAt: new Date() })
-    .where(and(eq(claims.kidId, claim.kidId), ne(claims.id, claimId), eq(claims.status, "pending")));
   revalidateAll();
 }
 

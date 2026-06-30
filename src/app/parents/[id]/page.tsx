@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, asc, count, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { appUsers, comments, kids, parents, prayers } from "@/db/schema";
+import { appUsers, claims, comments, kids, parents, prayers } from "@/db/schema";
 import { requireAccess } from "@/lib/auth";
 import { getParent, parentDisplayName } from "@/lib/parents";
 import { facebookSearchUrl } from "@/lib/config";
@@ -55,8 +55,9 @@ export default async function ParentProfile({
   const display = parentDisplayName(parent);
   const theirKids = await db
     .select({ id: kids.id, firstName: kids.firstName })
-    .from(kids)
-    .where(and(eq(kids.claimedBy, id), eq(kids.hidden, false)))
+    .from(claims)
+    .innerJoin(kids, eq(claims.kidId, kids.id))
+    .where(and(eq(claims.userId, id), eq(claims.status, "approved"), eq(kids.hidden, false)))
     .orderBy(asc(kids.firstName));
 
   const [{ value: prayedToday }] = await db
