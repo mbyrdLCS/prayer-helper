@@ -11,7 +11,6 @@ import {
   addKid,
   addKidsBulk,
   addQuestion,
-  autoNumberDuplicates,
   approveClaim,
   approveRedeemed,
   clearNeedsReview,
@@ -187,7 +186,7 @@ export default async function AdminPage({
       </Section>
 
       {/* Add kids */}
-      <Section title="Add kids" hint="Add one name, or paste many at once (one per line or comma-separated). Real names are entered here at runtime — they are never stored in the public code.">
+      <Section title="Add kids" hint="Add one name, or paste many at once (one per line or comma-separated). Repeated names are numbered automatically — add another Jonathan and he becomes Jonathan 9.">
         <div className="grid sm:grid-cols-2 gap-4">
           <form action={addKid} className="flex gap-2">
             <input name="firstName" placeholder="First name" required className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm" />
@@ -212,18 +211,11 @@ export default async function AdminPage({
         title="Manage kids"
         hint={q ? `Search results for “${q}”.` : "Showing kids that still need review. Search to find anyone."}
       >
-        <div className="flex flex-wrap gap-2 items-center justify-between">
-          <form className="flex gap-2">
-            <input name="q" defaultValue={q} placeholder="Search a name…" className="rounded-lg border border-border bg-surface px-3 py-2 text-sm" />
-            <button className="px-4 py-2 rounded-lg border border-border text-sm font-semibold">Search</button>
-            {q && <Link href="/admin" className="px-4 py-2 rounded-lg text-sm text-muted self-center">Clear</Link>}
-          </form>
-          <form action={autoNumberDuplicates}>
-            <button className="px-4 py-2 rounded-lg border border-primary text-primary text-sm font-semibold" title="Add 1, 2, 3… to any repeated first name. Safe to run anytime.">
-              🔢 Auto-number duplicates
-            </button>
-          </form>
-        </div>
+        <form className="flex gap-2">
+          <input name="q" defaultValue={q} placeholder="Search a name…" className="rounded-lg border border-border bg-surface px-3 py-2 text-sm" />
+          <button className="px-4 py-2 rounded-lg border border-border text-sm font-semibold">Search</button>
+          {q && <Link href="/admin" className="px-4 py-2 rounded-lg text-sm text-muted self-center">Clear</Link>}
+        </form>
         {kidList.length === 0 ? (
           <p className="text-muted text-sm">{q ? "No matches." : "Nothing needs review. 🎉"}</p>
         ) : (

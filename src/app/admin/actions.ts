@@ -64,6 +64,38 @@ export async function denyClaim(claimId: number) {
 
 /* ---------- Kids ---------- */
 
+/**
+ * Auto-number any first name that appears more than once (Jonathan 1, 2, 3…).
+ * Only fills blank tags and never overwrites existing numbers, so existing
+ * labels stay put and a newly-added duplicate just gets the next number.
+ * Runs automatically after every add.
+ */
+async function fillDuplicateTags() {
+  const all = await db
+    .select({ id: kids.id, firstName: kids.firstName, lastInitial: kids.lastInitial })
+    .from(kids)
+    .where(eq(kids.hidden, false))
+    .orderBy(asc(kids.sortOrder), asc(kids.id));
+
+  const groups = new Map<string, typeof all>();
+  for (const k of all) {
+    const key = k.firstName.trim().toLowerCase();
+    const arr = groups.get(key) ?? [];
+    arr.push(k);
+    groups.set(key, arr);
+  }
+  for (const group of groups.values()) {
+    if (group.length < 2) continue;
+    let n = 1;
+    for (const k of group) {
+      if (!k.lastInitial || !k.lastInitial.trim()) {
+        await db.update(kids).set({ lastInitial: String(n) }).where(eq(kids.id, k.id));
+      }
+      n++;
+    }
+  }
+}
+
 export async function addKid(formData: FormData) {
   const me = await requireAdmin();
   const firstName = String(formData.get("firstName") || "").trim().slice(0, 80);
@@ -71,6 +103,7 @@ export async function addKid(formData: FormData) {
   await db
     .insert(kids)
     .values({ firstName, sortOrder: await nextSortOrder(), createdBy: me.id });
+  await fillDuplicateTags();
   revalidateAll();
 }
 
@@ -91,6 +124,7 @@ export async function addKidsBulk(formData: FormData) {
       createdBy: me.id,
     }))
   );
+  await fillDuplicateTags();
   revalidateAll();
 }
 
@@ -119,40 +153,6 @@ export async function editKid(kidId: number, formData: FormData) {
     .update(kids)
     .set({ firstName, lastInitial, sortOrder, needsReview: false })
     .where(eq(kids.id, kidId));
-  revalidateAll();
-}
-
-/**
- * Add "1, 2, 3" tags to any first name that appears more than once, so
- * duplicates (e.g. 8 Jonathans) can be told apart. Non-destructive: only fills
- * blank tags and never touches names that appear once. Safe to run repeatedly.
- */
-export async function autoNumberDuplicates() {
-  await requireAdmin();
-  const all = await db
-    .select({ id: kids.id, firstName: kids.firstName, lastInitial: kids.lastInitial })
-    .from(kids)
-    .where(eq(kids.hidden, false))
-    .orderBy(asc(kids.sortOrder), asc(kids.id));
-
-  const groups = new Map<string, typeof all>();
-  for (const k of all) {
-    const key = k.firstName.trim().toLowerCase();
-    const arr = groups.get(key) ?? [];
-    arr.push(k);
-    groups.set(key, arr);
-  }
-
-  for (const group of groups.values()) {
-    if (group.length < 2) continue;
-    let n = 1;
-    for (const k of group) {
-      if (!k.lastInitial || !k.lastInitial.trim()) {
-        await db.update(kids).set({ lastInitial: String(n) }).where(eq(kids.id, k.id));
-      }
-      n++;
-    }
-  }
   revalidateAll();
 }
 
