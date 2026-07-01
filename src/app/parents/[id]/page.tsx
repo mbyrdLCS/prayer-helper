@@ -9,6 +9,8 @@ import { facebookSearchUrl } from "@/lib/config";
 import { today } from "@/lib/dates";
 import ParentAvatar from "@/components/ParentAvatar";
 import CommentForm from "@/components/CommentForm";
+import SubmitButton from "@/components/SubmitButton";
+import PhotoUploadForm from "@/components/PhotoUploadForm";
 import {
   addParentComment,
   prayForParent,
@@ -182,13 +184,9 @@ export default async function ParentProfile({
               <input type="checkbox" name="openToPrayer" defaultChecked={parent.openToPrayer} />
               Show me in the parents list so people can pray for me
             </label>
-            <button className="self-start px-5 py-2 rounded-lg bg-primary text-white text-sm font-semibold">Save</button>
+            <SubmitButton className="self-start px-5 py-2 rounded-lg bg-primary text-white text-sm font-semibold disabled:opacity-60">Save</SubmitButton>
           </form>
-          <form action={uploadParentPhoto.bind(null, id)} className="flex flex-col gap-2">
-            <label className="text-sm font-semibold">Photo (optional)</label>
-            <input type="file" name="photo" accept="image/*" className="text-sm" />
-            <button className="self-start px-5 py-2 rounded-lg border border-border text-sm font-semibold hover:bg-background">Upload photo</button>
-          </form>
+          <PhotoUploadForm action={uploadParentPhoto.bind(null, id)} />
         </section>
       )}
 

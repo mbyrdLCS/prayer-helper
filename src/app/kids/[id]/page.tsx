@@ -11,6 +11,8 @@ import { today } from "@/lib/dates";
 import KidAvatar from "@/components/KidAvatar";
 import ParentAvatar from "@/components/ParentAvatar";
 import CommentForm from "@/components/CommentForm";
+import SubmitButton from "@/components/SubmitButton";
+import PhotoUploadForm from "@/components/PhotoUploadForm";
 import {
   addKidComment,
   prayForKid,
@@ -232,14 +234,12 @@ export default async function KidProfile({
               className="rounded-lg border border-border bg-surface p-3 text-sm"
               placeholder="A little about them…"
             />
-            <button className="self-start px-5 py-2 rounded-lg bg-primary text-white text-sm font-semibold">
+            <SubmitButton className="self-start px-5 py-2 rounded-lg bg-primary text-white text-sm font-semibold disabled:opacity-60">
               Save
-            </button>
+            </SubmitButton>
           </form>
 
-          <form action={uploadKidPhoto.bind(null, kid.id)} className="flex flex-col gap-2">
-            <label className="text-sm font-semibold">Photo</label>
-            <input type="file" name="photo" accept="image/*" className="text-sm" />
+          <PhotoUploadForm action={uploadKidPhoto.bind(null, kid.id)}>
             <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
               <strong>Please read:</strong> {kid.firstName} is a minor. Only upload a
               photo if you are their parent/guardian and you have permission to share it
@@ -249,10 +249,7 @@ export default async function KidProfile({
                 <span>I have permission to share this photo.</span>
               </label>
             </div>
-            <button className="self-start px-5 py-2 rounded-lg border border-border text-sm font-semibold hover:bg-background">
-              Upload photo
-            </button>
-          </form>
+          </PhotoUploadForm>
 
           {kid.redeemed !== "approved" ? (
             <form action={requestRedeemed.bind(null, kid.id)} className="flex flex-col gap-2 border-t border-border pt-4">
