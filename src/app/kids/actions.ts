@@ -3,12 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { put } from "@vercel/blob";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { claims, comments, kids, prayers } from "@/db/schema";
-import { getDbUser } from "@/lib/auth";
+import { getDbUser, requireApproved } from "@/lib/auth";
 import { getParent } from "@/lib/parents";
 import { userHasApprovedClaim } from "@/lib/claims";
+import { imageExtension } from "@/lib/uploads";
 import { today } from "@/lib/dates";
 import { PREVIEW_MODE } from "@/lib/preview";
 
@@ -16,13 +17,12 @@ async function canManageKid(kidId: number) {
   const me = await getDbUser();
   if (!me) return { me: null, allowed: false as const };
   if (me.isAdmin) return { me, allowed: true as const };
-  // Any approved family member can manage the child's profile.
-  return { me, allowed: await userHasApprovedClaim(kidId, me.id) };
+  // Any approved family member (with app access) can manage the child's profile.
+  return { me, allowed: me.approved && (await userHasApprovedClaim(kidId, me.id)) };
 }
 
 export async function requestClaim(kidId: number, formData: FormData) {
-  const me = await getDbUser();
-  if (!me) throw new Error("Not signed in");
+  const me = await requireApproved();
 
   // Must have a parent profile (with a name) before claiming a child.
   const myParent = await getParent(me.id);
@@ -67,6 +67,8 @@ export async function uploadKidPhoto(kidId: number, formData: FormData) {
   const file = formData.get("photo") as File | null;
   if (!file || file.size === 0) return;
   if (file.size > 8 * 1024 * 1024) throw new Error("Image too large (max 8MB)");
+  const ext = imageExtension(file);
+  if (!ext) throw new Error("Please upload a photo (JPEG, PNG, WebP, GIF, or HEIC).");
   if (PREVIEW_MODE) {
     // No blob storage in preview — store the image inline so it still shows.
     const buf = Buffer.from(await file.arrayBuffer());
@@ -78,7 +80,6 @@ export async function uploadKidPhoto(kidId: number, formData: FormData) {
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     throw new Error("Photo storage isn't set up yet. (Admin: add Vercel Blob to enable photos.)");
   }
-  const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
   const blob = await put(`kids/${kidId}-${Date.now()}.${ext}`, file, {
     access: "public",
     addRandomSuffix: true,
@@ -106,8 +107,7 @@ export async function requestRedeemed(kidId: number, formData: FormData) {
 }
 
 export async function prayForKid(kidId: number) {
-  const me = await getDbUser();
-  if (!me) throw new Error("Not signed in");
+  const me = await requireApproved();
   const day = today();
   const existing = await db.query.prayers.findFirst({
     where: and(
@@ -123,8 +123,7 @@ export async function prayForKid(kidId: number) {
 }
 
 export async function addKidComment(kidId: number, formData: FormData) {
-  const me = await getDbUser();
-  if (!me) throw new Error("Not signed in");
+  const me = await requireApproved();
   const body = String(formData.get("body") || "").trim();
   if (!body) return;
   await db.insert(comments).values({

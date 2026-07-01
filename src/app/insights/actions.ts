@@ -3,11 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { questionResponses } from "@/db/schema";
-import { getDbUser } from "@/lib/auth";
+import { requireApproved } from "@/lib/auth";
 
 export async function answerQuestion(questionId: number, optionId: number) {
-  const me = await getDbUser();
-  if (!me) throw new Error("Not signed in");
+  const me = await requireApproved();
   await db
     .insert(questionResponses)
     .values({ questionId, userId: me.id, optionId, updatedAt: new Date() })

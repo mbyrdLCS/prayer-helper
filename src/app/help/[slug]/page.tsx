@@ -3,6 +3,9 @@ import { APP_NAME } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
+// Unlisted pages — reachable only by the secret link, never indexed.
+export const metadata = { robots: { index: false, follow: false } };
+
 type Guide = { title: string; subtitle: string; video: string; steps: string[] };
 
 function guides(): Record<string, Guide> {

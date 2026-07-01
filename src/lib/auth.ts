@@ -41,9 +41,15 @@ export async function syncCurrentUser(): Promise<AppUser | null> {
       isAdmin: isSeedAdmin,
       approved: isSeedAdmin, // admins are auto-approved
     };
-    await db.insert(appUsers).values(row).onConflictDoNothing();
+    const inserted = await db
+      .insert(appUsers)
+      .values(row)
+      .onConflictDoNothing()
+      .returning({ id: appUsers.id });
     // Heads-up email to admins for real new members (not the seed admins).
-    if (!isSeedAdmin) {
+    // Only when this request actually created the row — concurrent first
+    // requests (nav + page both sync) would otherwise email twice.
+    if (inserted.length && !isSeedAdmin) {
       const { notifyNewSignup } = await import("@/lib/email");
       await notifyNewSignup({ name, email });
     }
@@ -106,6 +112,20 @@ export async function requireAccess(): Promise<AppUser> {
   const me = await syncCurrentUser();
   if (!me) redirect("/sign-in");
   if (!hasAccess(me)) redirect("/join");
+  return me;
+}
+
+/**
+ * Gate for member server actions: throws unless the current user is signed in
+ * AND has access (admin or approved via the join code). Pages redirect via
+ * requireAccess(), but server actions are directly invokable endpoints and
+ * need their own check.
+ */
+export async function requireApproved(): Promise<AppUser> {
+  if (PREVIEW_MODE) return PREVIEW_USER as AppUser;
+  const me = await getDbUser();
+  if (!me) throw new Error("Not signed in");
+  if (!hasAccess(me)) throw new Error("Not authorized");
   return me;
 }
 

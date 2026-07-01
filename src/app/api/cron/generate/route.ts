@@ -11,9 +11,11 @@ export const maxDuration = 300;
  * Protected by CRON_SECRET — Vercel sends it as `Authorization: Bearer <secret>`.
  */
 export async function GET(req: Request) {
+  // Fail closed: this route is public in the middleware, and an open cron
+  // would let anyone re-send the daily email blast on demand.
   const secret = process.env.CRON_SECRET;
   const authHeader = req.headers.get("authorization");
-  if (secret && authHeader !== `Bearer ${secret}`) {
+  if (!secret || authHeader !== `Bearer ${secret}`) {
     return new Response("Unauthorized", { status: 401 });
   }
 

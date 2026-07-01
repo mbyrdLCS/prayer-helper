@@ -5,15 +5,20 @@ import { put } from "@vercel/blob";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { comments, parents, prayers } from "@/db/schema";
-import { getDbUser } from "@/lib/auth";
+import { getDbUser, requireApproved } from "@/lib/auth";
 import { ensureParentProfile } from "@/lib/parents";
+import { imageExtension } from "@/lib/uploads";
 import { today } from "@/lib/dates";
 import { PREVIEW_MODE } from "@/lib/preview";
 
 async function canManageParent(parentUserId: string) {
   const me = await getDbUser();
   if (!me) return { me: null, allowed: false as const };
-  return { me, allowed: me.id === parentUserId || me.isAdmin };
+  // Self-management still requires app access (approved via join code).
+  return {
+    me,
+    allowed: me.isAdmin || (me.approved && me.id === parentUserId),
+  };
 }
 
 export async function updateParentProfile(parentUserId: string, formData: FormData) {
@@ -42,6 +47,8 @@ export async function uploadParentPhoto(parentUserId: string, formData: FormData
   const file = formData.get("photo") as File | null;
   if (!file || file.size === 0) return;
   if (file.size > 8 * 1024 * 1024) throw new Error("Image too large (max 8MB)");
+  const ext = imageExtension(file);
+  if (!ext) throw new Error("Please upload a photo (JPEG, PNG, WebP, GIF, or HEIC).");
   let url: string;
   if (PREVIEW_MODE) {
     const buf = Buffer.from(await file.arrayBuffer());
@@ -50,7 +57,6 @@ export async function uploadParentPhoto(parentUserId: string, formData: FormData
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
       throw new Error("Photo storage isn't set up yet. (Admin: add Vercel Blob to enable photos.)");
     }
-    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
     const blob = await put(`parents/${parentUserId}-${Date.now()}.${ext}`, file, {
       access: "public",
       addRandomSuffix: true,
@@ -62,8 +68,7 @@ export async function uploadParentPhoto(parentUserId: string, formData: FormData
 }
 
 export async function prayForParent(parentUserId: string) {
-  const me = await getDbUser();
-  if (!me) throw new Error("Not signed in");
+  const me = await requireApproved();
   const day = today();
   const existing = await db.query.prayers.findFirst({
     where: and(
@@ -79,8 +84,7 @@ export async function prayForParent(parentUserId: string) {
 }
 
 export async function addParentComment(parentUserId: string, formData: FormData) {
-  const me = await getDbUser();
-  if (!me) throw new Error("Not signed in");
+  const me = await requireApproved();
   const body = String(formData.get("body") || "").trim();
   if (!body) return;
   await db.insert(comments).values({
@@ -94,8 +98,7 @@ export async function addParentComment(parentUserId: string, formData: FormData)
 
 /** Create-or-edit the current user's own parent profile (entry point). */
 export async function startMyParentProfile() {
-  const me = await getDbUser();
-  if (!me) throw new Error("Not signed in");
+  const me = await requireApproved();
   await ensureParentProfile(me.id);
   revalidatePath(`/parents/${me.id}`);
 }
