@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -27,5 +28,9 @@ export async function submitJoinCode(
   }
 
   await db.update(appUsers).set({ approved: true }).where(eq(appUsers.id, me.id));
+  // The nav menu lives in the root layout and hides until the user has access —
+  // purge the layout cache or it stays menu-less until some other action
+  // happens to revalidate.
+  revalidatePath("/", "layout");
   redirect("/today");
 }

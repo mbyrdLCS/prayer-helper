@@ -50,9 +50,7 @@ export async function notifyNewSignup(member: {
       <h2 style="color:#b23a48;margin:0 0 10px">New ${APP_NAME} sign-up</h2>
       <p style="margin:0 0 4px"><strong>${who}</strong> just created an account.</p>
       ${email ? `<p style="margin:0 0 4px;color:#8a7a72">${email}</p>` : ""}
-      <p style="margin:14px 0">They're waiting to be approved. Open the admin page to approve them${
-        who ? " (or make them an admin)" : ""
-      }.</p>
+      <p style="margin:14px 0">They can start using the app as soon as they enter the group code — no action needed. Open the admin page if you'd like to check on them or make them an admin.</p>
       ${SITE_URL ? `<p><a href="${SITE_URL}/admin" style="background:#b23a48;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Open the admin page</a></p>` : ""}
     </div>`;
   try {
