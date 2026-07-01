@@ -24,8 +24,20 @@ const display = Poppins({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://hopefulprayer.com"),
   title: APP_NAME,
   description: APP_TAGLINE,
+  openGraph: {
+    title: APP_NAME,
+    description: APP_TAGLINE,
+    type: "website",
+    siteName: APP_NAME,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: APP_NAME,
+    description: APP_TAGLINE,
+  },
 };
 
 export default function RootLayout({

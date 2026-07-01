@@ -42,3 +42,6 @@ next-env.d.ts
 
 # Preview-mode in-process database
 .preview-db/
+
+# Tutorials (screenshots + rendered videos — kept out of the public repo)
+tutorials/
