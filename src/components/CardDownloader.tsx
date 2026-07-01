@@ -18,6 +18,7 @@ export default function CardDownloader({ today }: { today: string }) {
   const [date, setDate] = useState(today);
   const [theme, setTheme] = useState(""); // "" = auto by month
   const [style, setStyle] = useState("soft");
+  const [busy, setBusy] = useState<number | null>(null); // # of days currently downloading
 
   const params = new URLSearchParams();
   if (theme) params.set("theme", theme);
@@ -25,6 +26,30 @@ export default function CardDownloader({ today }: { today: string }) {
   const qs = params.toString();
   const cardUrl = `/api/card/${date}${qs ? `?${qs}` : ""}`;
   const zip = (days: number) => `/api/cards/zip?${new URLSearchParams({ ...(theme ? { theme } : {}), style, start: date, days: String(days) })}`;
+
+  // Building a month of cards takes a while, so we fetch the zip ourselves and
+  // show a "Preparing…" state instead of a silent link that looks frozen.
+  async function downloadZip(days: number) {
+    if (busy !== null) return;
+    setBusy(days);
+    try {
+      const res = await fetch(zip(days));
+      if (!res.ok) throw new Error(`Server responded ${res.status}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `hopeful-cards-${date}-${days}day${days === 1 ? "" : "s"}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert("Sorry — the cards didn't finish building. Please try again in a moment.");
+    } finally {
+      setBusy(null);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -82,13 +107,29 @@ export default function CardDownloader({ today }: { today: string }) {
             >
               ⬇ This day&apos;s card
             </a>
-            <a href={zip(7)} className="px-4 py-2 rounded-lg border border-border text-sm font-semibold hover:bg-background">
-              ⬇ A week (7, .zip)
-            </a>
-            <a href={zip(30)} className="px-4 py-2 rounded-lg border border-border text-sm font-semibold hover:bg-background">
-              ⬇ A month (30, .zip)
-            </a>
+            <button
+              type="button"
+              onClick={() => downloadZip(7)}
+              disabled={busy !== null}
+              className="px-4 py-2 rounded-lg border border-border text-sm font-semibold hover:bg-background disabled:opacity-60 disabled:cursor-wait"
+            >
+              {busy === 7 ? "⏳ Preparing your cards…" : "⬇ A week (7, .zip)"}
+            </button>
+            <button
+              type="button"
+              onClick={() => downloadZip(30)}
+              disabled={busy !== null}
+              className="px-4 py-2 rounded-lg border border-border text-sm font-semibold hover:bg-background disabled:opacity-60 disabled:cursor-wait"
+            >
+              {busy === 30 ? "⏳ Preparing your cards…" : "⬇ A month (30, .zip)"}
+            </button>
           </div>
+          {busy !== null && (
+            <p className="text-xs text-muted">
+              Building {busy} cards can take a minute — hang tight, your download
+              will start automatically.
+            </p>
+          )}
           <p className="text-xs text-muted">
             <strong>Soft</strong> &amp; <strong>Dreamy</strong> use the month&apos;s
             painted/photo background; <strong>Classic</strong> is the clean gradient;
