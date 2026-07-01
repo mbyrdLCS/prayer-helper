@@ -42,6 +42,11 @@ export async function syncCurrentUser(): Promise<AppUser | null> {
       approved: isSeedAdmin, // admins are auto-approved
     };
     await db.insert(appUsers).values(row).onConflictDoNothing();
+    // Heads-up email to admins for real new members (not the seed admins).
+    if (!isSeedAdmin) {
+      const { notifyNewSignup } = await import("@/lib/email");
+      await notifyNewSignup({ name, email });
+    }
     return { ...row, createdAt: new Date() } as AppUser;
   }
 

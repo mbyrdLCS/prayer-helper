@@ -10,6 +10,47 @@ import { PREVIEW_MODE } from "@/lib/preview";
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const RESEND_FROM = process.env.RESEND_FROM || `${APP_NAME} <onboarding@resend.dev>`;
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "";
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+/**
+ * Sends the admin(s) a heads-up whenever a brand-new member signs up, so they
+ * can approve/promote right away. No-ops safely without RESEND_API_KEY /
+ * ADMIN_EMAILS or in preview mode. Never throws — a failed alert must not
+ * break sign-in.
+ */
+export async function notifyNewSignup(member: {
+  name: string | null;
+  email: string | null;
+}): Promise<void> {
+  if (PREVIEW_MODE || !RESEND_API_KEY || !ADMIN_EMAILS.length) return;
+  const who = member.name?.trim() || member.email || "Someone";
+  const subject = `🆕 ${APP_NAME}: ${who} just signed up`;
+  const html = `
+    <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#3a2e2a">
+      <h2 style="color:#b23a48;margin:0 0 10px">New ${APP_NAME} sign-up</h2>
+      <p style="margin:0 0 4px"><strong>${who}</strong> just created an account.</p>
+      ${member.email ? `<p style="margin:0 0 4px;color:#8a7a72">${member.email}</p>` : ""}
+      <p style="margin:14px 0">They're waiting to be approved. Open the admin page to approve them${
+        who ? " (or make them an admin)" : ""
+      }.</p>
+      ${SITE_URL ? `<p><a href="${SITE_URL}/admin" style="background:#b23a48;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Open the admin page</a></p>` : ""}
+    </div>`;
+  try {
+    await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ from: RESEND_FROM, to: ADMIN_EMAILS, subject, html }),
+    });
+  } catch {
+    // Never let a notification failure break sign-in.
+  }
+}
 
 /**
  * Emails today's prayer card to every member who opted in. Uses Resend (a simple
