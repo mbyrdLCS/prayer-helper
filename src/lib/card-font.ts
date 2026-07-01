@@ -13,9 +13,9 @@ export async function loadGoogleFont(
     )}:wght@${weight}&text=${encodeURIComponent(text)}`;
     const css = await fetch(url, {
       headers: {
-        // Ask for a TTF (no woff2) so ImageResponse can parse it.
-        "User-Agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) AppleWebKit/537.36",
+        // Old User-Agent forces Google to return TrueType (which Satori/next-og
+        // can parse). A modern UA returns woff/woff2, which fails.
+        "User-Agent": "Mozilla/4.0",
       },
     }).then((r) => r.text());
     const match = css.match(/src: url\((.+?)\) format\('(opentype|truetype)'\)/);
