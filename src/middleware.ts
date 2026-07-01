@@ -9,6 +9,7 @@ const isPublic = createRouteMatcher([
   "/privacy",
   "/terms",
   "/help(.*)",
+  "/opengraph-image(.*)",
   "/api/cron(.*)",
 ]);
 
