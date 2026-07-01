@@ -39,23 +39,27 @@ export default function PhotoUploadForm({
           }
         })
       }
-      className="flex flex-col gap-2"
+      className="flex flex-col gap-2 items-start"
     >
       <label className="text-sm font-semibold">Photo</label>
-      <input
-        type="file"
-        name="photo"
-        accept="image/*"
-        required
-        onChange={(e) => setFileName(e.target.files?.[0]?.name ?? "")}
-        className="text-sm"
-      />
+      {/* Big obvious "choose" button that opens the file picker */}
+      <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-primary text-primary text-sm font-semibold hover:bg-primary/5">
+        📷 {fileName ? "Choose a different photo" : "Choose a photo"}
+        <input
+          type="file"
+          name="photo"
+          accept="image/*"
+          required
+          onChange={(e) => setFileName(e.target.files?.[0]?.name ?? "")}
+          className="hidden"
+        />
+      </label>
       {fileName && <p className="text-xs text-muted">Selected: {fileName}</p>}
       {children}
       <button
         type="submit"
-        disabled={pending}
-        className="self-start px-5 py-2 rounded-lg border border-border text-sm font-semibold hover:bg-background disabled:opacity-60"
+        disabled={pending || !fileName}
+        className="self-start px-5 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:opacity-90 disabled:opacity-40"
       >
         {pending ? "Uploading…" : buttonLabel}
       </button>
